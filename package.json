@@ -1,0 +1,30 @@
+{
+  "name": "ip-assess-web",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run build && npm run db:migrate:local && wrangler dev -c apps/web/wrangler.jsonc -c apps/api/wrangler.jsonc --persist-to .wrangler/state",
+    "dev:local": "npm run build && npm run db:migrate:local && wrangler dev -c apps/web/wrangler.jsonc -c apps/api/wrangler.jsonc --persist-to .wrangler/state -e local",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w packages/core",
+    "db:migrate:local": "wrangler d1 migrations apply ip-assess -c apps/api/wrangler.jsonc --local --persist-to .wrangler/state",
+    "db:migrate:remote": "wrangler d1 migrations apply ip-assess -c apps/api/wrangler.jsonc --remote",
+    "deploy": "npm run build && wrangler deploy -c apps/api/wrangler.jsonc && wrangler deploy -c apps/web/wrangler.jsonc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261106.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261104.1": true
+  }
+}

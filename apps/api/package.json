@@ -1,0 +1,14 @@
+{
+  "name": "@ip-assess/api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc -p .",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@ip-assess/core": "*",
+    "hono": "^4.13.16"
+  }
+}
