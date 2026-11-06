@@ -3,6 +3,14 @@
 [ip-assess](https://github.com/yoshihicode/ip-assess)（bash 版）を Cloudflare Workers（無料枠）で Web サービス化したもの。
 アクセス元 IP アドレスの一次調査を行い、「調査優先度（HIGH / MEDIUM / LOW）」とその根拠を示す。安全／危険の結論は出さない。
 
+- Live Demo: https://ip-assess-web.yoshihicode.workers.dev
+- Repository: https://github.com/yoshihicode/ip-assess-web
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/screenshot-dark.png">
+  <img alt="ip-assess-web の画面（8.8.8.8 を調査した結果）" src="docs/images/screenshot-light.png">
+</picture>
+
 - 対象: 日本国内向け。画面は日本語・英語
 - 対応: IPv4 / IPv6
 - 追加機能（bash 版との差分）: AI による評価、同じ IP の問い合わせ状況、複数の DNSBL
