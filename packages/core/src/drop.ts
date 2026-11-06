@@ -4,6 +4,7 @@
 //   日付・© 表記をデータとともに残すこと（https://www.spamhaus.org/drop/terms/）
 
 import { parsePrefix, prefixContains, type ParsedIp, type ParsedPrefix } from './ip';
+import type { AsnDropEntry } from './types';
 
 export interface DropEntry {
   cidr: string;
@@ -53,4 +54,45 @@ export function matchDrop(list: DropList, ip: ParsedIp): DropEntry | null {
     if (prefixContains(e.prefix, ip) && (!best || e.prefix.length > best.prefix.length)) best = e;
   }
   return best;
+}
+
+// ---------------- ASN-DROP ----------------
+//   https://www.spamhaus.org/drop/asndrop.json（1 行 1 JSON、最終行がメタデータ。利用条件は DROP と同じ）
+
+export interface AsnDropList {
+  entries: Map<number, AsnDropEntry>;
+  updated: string | null;
+  copyright: string | null;
+  terms: string | null;
+}
+
+export function parseAsnDrop(text: string): AsnDropList {
+  const list: AsnDropList = { entries: new Map(), updated: null, copyright: null, terms: null };
+  let sawMetadata = false;
+  const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null);
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    let o: Record<string, unknown>;
+    try {
+      o = JSON.parse(line) as Record<string, unknown>;
+    } catch {
+      continue;
+    }
+    if (o.type === 'metadata') {
+      sawMetadata = true;
+      if (typeof o.timestamp === 'number') list.updated = new Date(o.timestamp * 1000).toISOString();
+      list.copyright = str(o.copyright);
+      list.terms = str(o.terms);
+      continue;
+    }
+    if (typeof o.asn !== 'number') continue;
+    list.entries.set(o.asn, { asn: o.asn, asname: str(o.asname), cc: str(o.cc), domain: str(o.domain) });
+  }
+  // 取得途中で切れたファイルを「未掲載」と誤判定しないよう、メタデータ行がなければ不正とする
+  if (!sawMetadata) throw new Error('ASN-DROP list has no metadata line');
+  return list;
+}
+
+export function matchAsnDrop(list: AsnDropList, asns: number[]): AsnDropEntry[] {
+  return asns.flatMap((a) => (list.entries.has(a) ? [list.entries.get(a)!] : []));
 }

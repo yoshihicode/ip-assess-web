@@ -326,6 +326,9 @@ export function SourcesSection({ c }: { c: Partial<CheckResults> }) {
   if (c.drop?.copyright) {
     rows.push(['Spamhaus DROP ©', `${c.drop.copyright} / ${c.drop.listUpdated ?? '-'} / ${c.drop.terms ?? ''}`]);
   }
+  if (c.asndrop?.copyright) {
+    rows.push(['Spamhaus ASN-DROP ©', `${c.asndrop.copyright} / ${c.asndrop.listUpdated ?? '-'} / ${c.asndrop.terms ?? ''}`]);
+  }
   if (c.dns) rows.push([t.fields.resolver, c.dns.resolver]);
   return <Section title={t.sections.sources}><KV rows={rows} /></Section>;
 }

@@ -56,6 +56,7 @@ export function buildFacts(a: Assessment, c: CheckResults) {
       : c.internetdb.status,
     dnsbl: c.dnsbl.lists.filter((l) => l.status !== 'not_configured').map((l) => ({ list: l.label, kind: l.kind, status: l.status, categories: l.categories })),
     spamhaus_drop: c.drop.status === 'listed' ? { listed: true, sblid: c.drop.sblid, cidr: c.drop.cidr } : c.drop.status,
+    spamhaus_asn_drop: c.asndrop.status === 'listed' ? { listed: true, asns: c.asndrop.matches.map((m) => m.asn) } : c.asndrop.status,
     tor_exit: c.tor.status,
     ipsum_lists: c.ipsum.status === 'ok' ? c.ipsum.count : c.ipsum.status,
   };

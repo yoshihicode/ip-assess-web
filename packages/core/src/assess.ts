@@ -44,6 +44,7 @@ export function unavailableChecks(r: CheckResults): string[] {
     if (l.status === 'failed' || l.status === 'refused' || l.status === 'unhealthy') out.push(`DNSBL (${l.label})`);
   }
   if (r.drop.status === 'failed') out.push('Spamhaus DROP');
+  if (r.asndrop.status === 'failed') out.push('Spamhaus ASN-DROP');
   if (r.tor.status === 'failed') out.push('Tor Exit Node');
   if (r.ipsum.status === 'failed') out.push('IPsum');
   if (r.internetdb.status === 'failed') out.push('Shodan InternetDB');
@@ -52,7 +53,7 @@ export function unavailableChecks(r: CheckResults): string[] {
 }
 
 export function assess(ip: ParsedIp, r: CheckResults, now = new Date()): Assessment {
-  const { rdap, dns, asn, dnsbl, drop, tor, ipsum, internetdb: idb, geofeed } = r;
+  const { rdap, dns, asn, dnsbl, drop, asndrop, tor, ipsum, internetdb: idb, geofeed } = r;
   const indicators: Indicator[] = [];
   let score = 0;
   const add = (ind: Indicator) => { indicators.push(ind); score += ind.points; };
@@ -180,6 +181,17 @@ export function assess(ip: ParsedIp, r: CheckResults, now = new Date()): Assessm
   if (drop.status === 'listed') threat({ id: 'drop', state: 'hit', params: dropParams }, `Spamhaus DROP${drop.sblid ? ` ${drop.sblid}` : ''}`);
   else threat({ id: 'drop', state: drop.status === 'failed' ? 'unknown' : 'none', params: dropParams });
 
+  const asnDropParams = {
+    asns: asndrop.matches.map((m) => `AS${m.asn}${m.asname ? ` (${m.asname})` : ''}`),
+    copyright: asndrop.copyright ?? '', listUpdated: asndrop.listUpdated ?? '',
+  };
+  if (asndrop.status === 'listed') {
+    threat({ id: 'asn_drop', state: 'hit', params: asnDropParams }, `Spamhaus ASN-DROP ${asndrop.matches.map((m) => `AS${m.asn}`).join(' ')}`);
+  } else {
+    const st = asndrop.status === 'failed' ? 'unknown' : asndrop.status === 'no_asn' ? 'na' : 'none';
+    threat({ id: 'asn_drop', state: st, params: asnDropParams });
+  }
+
   if (ipsum.status === 'ok' && ipsum.count >= IPSUM_THRESHOLD) threat({ id: 'ipsum', state: 'hit', params: { count: ipsum.count } }, `IPsum ${ipsum.count} lists`);
   else if (ipsum.status === 'ok' && ipsum.count >= 1) threat({ id: 'ipsum', state: 'info', params: { count: ipsum.count } });
   else threat({ id: 'ipsum', state: ipsum.status === 'failed' ? 'unknown' : ipsum.status === 'unsupported' ? 'na' : 'none', params: { count: 0 } });
@@ -212,7 +224,7 @@ export function assess(ip: ParsedIp, r: CheckResults, now = new Date()): Assessm
   // ---------------- 脅威の評判のまとめ ----------------
   const unavailable = unavailableChecks(r);
   const reputationIncomplete =
-    tor.status === 'failed' || ipsum.status === 'failed' || drop.status === 'failed' ||
+    tor.status === 'failed' || ipsum.status === 'failed' || drop.status === 'failed' || asndrop.status === 'failed' ||
     dnsbl.lists.some((l) => l.kind === 'threat' && ['failed', 'refused', 'unhealthy'].includes(l.status));
   const threatLevel = signals.length > 0 ? 'DETECTED' : reputationIncomplete ? 'UNKNOWN' : 'NONE_FOUND';
 

@@ -24,6 +24,7 @@ export function results(over: Partial<CheckResults> = {}): CheckResults {
       ],
     },
     drop: { ...meta, status: 'not_listed', cidr: null, sblid: null, listUpdated: '2026-11-06T00:00:00.000Z', copyright: '(c) 2026 The Spamhaus Project SLU', terms: null },
+    asndrop: { ...meta, status: 'not_listed', checkedAsns: [64500], matches: [], listUpdated: '2026-11-06T00:00:00.000Z', copyright: '(c) 2026 The Spamhaus Project SLU', terms: null },
     tor: { ...meta, status: 'not_listed' },
     ipsum: { ...meta, status: 'ok', count: 0, updated: null },
     internetdb: { ...meta, status: 'no_data', ports: [], tags: [], vulns: [], cpes: [], hostnames: [] },

@@ -10,7 +10,7 @@ import { checkDns } from './checks/dns';
 import { checkAsn } from './checks/asn';
 import { checkDnsbl } from './checks/dnsbl';
 import { checkIpsum, checkTor } from './checks/lists';
-import { checkDrop } from './checks/drop';
+import { checkAsnDrop, checkDrop } from './checks/drop';
 import { checkInternetDb } from './checks/internetdb';
 import { checkGeofeed } from './checks/geofeed';
 import { evaluateWithAi } from './ai';
@@ -21,7 +21,7 @@ import {
 
 // チェック結果のキャッシュ時間（秒）
 const CHECK_TTL: Record<CheckId, number> = {
-  rdap: 21600, dns: 3600, asn: 21600, dnsbl: 1800, drop: 3600, tor: 1800, ipsum: 3600, internetdb: 21600, geofeed: 21600,
+  rdap: 21600, dns: 3600, asn: 21600, dnsbl: 1800, drop: 3600, asndrop: 3600, tor: 1800, ipsum: 3600, internetdb: 21600, geofeed: 21600,
 };
 
 const isFailed = (id: CheckId, v: unknown): boolean => {
@@ -39,6 +39,7 @@ function runCheck<K extends CheckId>(env: Env, ip: ParsedIp, id: K): Promise<Che
       case 'asn': return checkAsn(ip, env.DOH_ENDPOINT);
       case 'dnsbl': return checkDnsbl(ip, env.DOH_ENDPOINT, env.SPAMHAUS_DQS_KEY);
       case 'drop': return checkDrop(ip);
+      case 'asndrop': return checkAsnDrop(await runCheck(env, ip, 'asn'));
       case 'tor': return checkTor(ip);
       case 'ipsum': return checkIpsum(ip);
       case 'internetdb': return checkInternetDb(ip);

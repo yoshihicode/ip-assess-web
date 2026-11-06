@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { matchDrop, parseDrop, buildDnsblDefinitions, matchGeofeed, parseCymruAsName, parseCymruOrigin, parseIp, parseRdap, publicZone } from '../src';
+import { matchAsnDrop, parseAsnDrop, matchDrop, parseDrop, buildDnsblDefinitions, matchGeofeed, parseCymruAsName, parseCymruOrigin, parseIp, parseRdap, publicZone } from '../src';
 
 describe('Team Cymru', () => {
   it('最も細かいプレフィックスを採用し、別のオリジン AS を数える', () => {
@@ -129,5 +129,26 @@ describe('Spamhaus DROP', () => {
   });
   it('メタデータ行のない（途中で切れた）ファイルはエラー', () => {
     expect(() => parseDrop('{"cidr":"192.0.2.0/24","sblid":"SBL1"}')).toThrow();
+  });
+});
+
+describe('Spamhaus ASN-DROP', () => {
+  const text = [
+    '{"asn":64500,"rir":"arin","domain":"bad.example","cc":"US","asname":"BAD-AS"}',
+    '{"asn":64501,"rir":"ripencc","cc":"NL","asname":"WORSE-AS"}',
+    '{"type":"metadata","timestamp":1793943842,"size":100,"records":2,"copyright":"(c) 2026 The Spamhaus Project SLU","terms":"https://www.spamhaus.org/drop/terms/"}',
+  ].join('\n');
+  const list = parseAsnDrop(text);
+  it('メタデータとエントリ', () => {
+    expect(list.copyright).toBe('(c) 2026 The Spamhaus Project SLU');
+    expect(list.entries.get(64500)).toEqual({ asn: 64500, asname: 'BAD-AS', cc: 'US', domain: 'bad.example' });
+    expect(list.entries.get(64501)?.domain).toBeNull();
+  });
+  it('オリジン AS と別のオリジン AS を照合する', () => {
+    expect(matchAsnDrop(list, [15169, 64501]).map((e) => e.asn)).toEqual([64501]);
+    expect(matchAsnDrop(list, [15169])).toEqual([]);
+  });
+  it('メタデータ行のない（途中で切れた）ファイルはエラー', () => {
+    expect(() => parseAsnDrop('{"asn":64500}')).toThrow();
   });
 });

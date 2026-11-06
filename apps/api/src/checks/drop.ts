@@ -1,4 +1,7 @@
-import { matchDrop, parseDrop, type DropList, type DropResult, type ParsedIp } from '@ip-assess/core';
+import {
+  matchAsnDrop, matchDrop, parseAsnDrop, parseDrop,
+  type AsnDropList, type AsnDropResult, type AsnResult, type DropList, type DropResult, type ParsedIp,
+} from '@ip-assess/core';
 import { cachedText } from '../cache';
 
 export const DROP_URLS = {
@@ -29,5 +32,32 @@ export async function checkDrop(ip: ParsedIp): Promise<DropResult> {
       : { ...base, ...meta, status: 'not_listed' };
   } catch (e) {
     return { ...base, status: 'failed', error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export const ASNDROP_URL = 'https://www.spamhaus.org/drop/asndrop.json';
+
+let parsedAsn: { text: string; list: AsnDropList } | undefined;
+
+// Spamhaus ASN-DROP（犯罪者が運営する ASN）。ASN のチェック結果と照合する
+export async function checkAsnDrop(asn: AsnResult): Promise<AsnDropResult> {
+  const base = {
+    fetchedAt: new Date().toISOString(), source: ASNDROP_URL, checkedAsns: [] as number[], matches: [],
+    listUpdated: null, copyright: null, terms: null,
+  };
+  if (asn.status === 'failed') return { ...base, status: 'failed', error: 'ASN lookup unavailable' };
+  if (asn.status === 'not_announced' || asn.asn === null) return { ...base, status: 'no_asn' };
+  const checkedAsns = [asn.asn, ...asn.otherAsns];
+  try {
+    const text = await cachedText(ASNDROP_URL, 3600, (t) => t.includes('"type":"metadata"'));
+    if (!parsedAsn || parsedAsn.text !== text) parsedAsn = { text, list: parseAsnDrop(text) };
+    const { list } = parsedAsn;
+    const matches = matchAsnDrop(list, checkedAsns);
+    return {
+      ...base, checkedAsns, matches, listUpdated: list.updated, copyright: list.copyright, terms: list.terms,
+      status: matches.length ? 'listed' : 'not_listed',
+    };
+  } catch (e) {
+    return { ...base, checkedAsns, status: 'failed', error: e instanceof Error ? e.message : String(e) };
   }
 }

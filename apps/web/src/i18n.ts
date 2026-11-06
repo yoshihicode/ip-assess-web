@@ -22,6 +22,7 @@ const ja = {
     asn: 'ASN（Team Cymru）',
     dnsbl: 'DNSBL',
     drop: 'Spamhaus DROP',
+    asndrop: 'Spamhaus ASN-DROP',
     tor: 'Tor 出口ノード',
     ipsum: 'IPsum',
     internetdb: 'Shodan InternetDB',
@@ -100,7 +101,7 @@ const ja = {
     consumer_isp: '国内一般回線', sase: '企業向け SASE', verified_crawler: '検証済みクローラー',
     datacenter: 'データセンター・クラウド', sublease: 'IP 転貸（ドメイン不一致）', pobox: '私書箱・バーチャルオフィス',
     vpn: '匿名化 VPN', virtual_location: '仮想ロケーション', pa: 'PA 割り当て', no_ptr: '使える逆引きなし',
-    dnsbl: 'DNSBL', drop: 'Spamhaus DROP（犯罪者が管理するネットワーク）', ipsum: 'IPsum 集約ブラックリスト', compromised: '乗っ取られた機器（Shodan）',
+    dnsbl: 'DNSBL', drop: 'Spamhaus DROP（犯罪者が管理するネットワーク）', asn_drop: 'Spamhaus ASN-DROP（犯罪者が運営する ASN）', ipsum: 'IPsum 集約ブラックリスト', compromised: '乗っ取られた機器（Shodan）',
     proxy: '公開プロキシ（Shodan）', tor: 'Tor 出口ノード', spoofed_crawler: 'クローラーを装った逆引き',
   } as Record<string, string>,
   evidence: {
@@ -113,6 +114,7 @@ const ja = {
     refused: '問い合わせが拒否された（公開リゾルバ経由など）', unhealthy: 'テスト用アドレスに応答しない（リストの不調）',
     unsupported: 'IPv6 に非対応', failed: '問い合わせに失敗', ipv4Only: 'IPv6 に非対応', notListed: '掲載なし',
     not_configured: 'DQS キー未設定のため対象外（公開ミラーは公開リゾルバ経由を拒否するため）',
+    asnDropListed: '{asns} が掲載', noAsn: '経路が広告されておらず照合する ASN がない',
     dropListed: '{cidr} に掲載（{sblid}）', dropCredit: 'データ: {copyright}（リスト更新: {date}）',
   },
   ai: {
@@ -133,11 +135,11 @@ const ja = {
     heading: '免責事項',
     items: [
       '本サービスの結果は、アクセス元 IP アドレスの一次調査のための参考情報です。安全・危険を判定するものではなく、「LOW」や「未検出」は安全であることを意味しません。',
-      '結果は第三者のデータソース（RDAP、DNS、Shodan InternetDB、Spamhaus DROP、IPsum、Tor Project など）に基づきます。これらの情報の正確性・完全性・最新性は保証されず、登録情報や申告所在地は誤っている場合があります。',
+      '結果は第三者のデータソース（RDAP、DNS、Shodan InternetDB、Spamhaus DROP / ASN-DROP、IPsum、Tor Project など）に基づきます。これらの情報の正確性・完全性・最新性は保証されず、登録情報や申告所在地は誤っている場合があります。',
       'AI による評価は自動生成された参考情報であり、誤りを含む可能性があります。',
       '遮断・通報などの対応は、本サービスの結果だけで判断せず、アクセスログなどの根拠を確認したうえで、利用者の責任で行ってください。本サービスの利用によって生じた損害について、提供者は責任を負いません。',
       '調査のため、入力した IP アドレスは外部のデータソース（RDAP・DNS リゾルバ・DNSBL の運営者・Shodan など）に送信されます。また、問い合わせ内容と結果は問い合わせ状況の集計のために記録されます。',
-      '各データソースの権利はそれぞれの提供者に帰属します。Spamhaus DROP: © The Spamhaus Project SLU。',
+      '各データソースの権利はそれぞれの提供者に帰属します。Spamhaus DROP / ASN-DROP: © The Spamhaus Project SLU。',
     ],
   },
   lang: 'English',
@@ -160,7 +162,7 @@ const en: Dict = {
   },
   checks: {
     rdap: 'Registration (RDAP)', dns: 'Reverse DNS / FCrDNS', asn: 'ASN (Team Cymru)', dnsbl: 'DNSBL',
-    drop: 'Spamhaus DROP', tor: 'Tor exit node', ipsum: 'IPsum', internetdb: 'Shodan InternetDB', geofeed: 'Geofeed',
+    drop: 'Spamhaus DROP', asndrop: 'Spamhaus ASN-DROP', tor: 'Tor exit node', ipsum: 'IPsum', internetdb: 'Shodan InternetDB', geofeed: 'Geofeed',
   },
   progress: 'Progress',
   pending: 'Fetching…',
@@ -225,7 +227,7 @@ const en: Dict = {
     consumer_isp: 'Domestic consumer ISP', sase: 'Enterprise SASE', verified_crawler: 'Verified search engine crawler',
     datacenter: 'Datacenter / hosting / cloud', sublease: 'IP sub-leasing (domain mismatch)', pobox: 'PO box / virtual office',
     vpn: 'Anonymizing VPN service', virtual_location: 'Virtual location', pa: 'PA allocation', no_ptr: 'No usable reverse DNS',
-    dnsbl: 'DNSBL', drop: 'Spamhaus DROP (criminal-controlled networks)', ipsum: 'IPsum aggregated blocklists', compromised: 'Compromised host (Shodan)',
+    dnsbl: 'DNSBL', drop: 'Spamhaus DROP (criminal-controlled networks)', asn_drop: 'Spamhaus ASN-DROP (criminal-operated ASNs)', ipsum: 'IPsum aggregated blocklists', compromised: 'Compromised host (Shodan)',
     proxy: 'Exposed proxy service (Shodan)', tor: 'Tor exit node', spoofed_crawler: 'Spoofed crawler PTR',
   },
   evidence: {
@@ -238,6 +240,7 @@ const en: Dict = {
     refused: 'query refused (e.g. via public resolver)', unhealthy: 'list did not answer its test address (list malfunction)',
     unsupported: 'IPv6 not supported', failed: 'query failed', ipv4Only: 'IPv6 not supported', notListed: 'not listed',
     not_configured: 'Not used: no DQS key configured (the public mirror refuses queries via public resolvers)',
+    asnDropListed: '{asns} listed', noAsn: 'No routing ASN to check (not announced)',
     dropListed: 'listed as {cidr} ({sblid})', dropCredit: 'Data: {copyright} (list updated: {date})',
   },
   ai: {
@@ -258,11 +261,11 @@ const en: Dict = {
     heading: 'Disclaimer',
     items: [
       'Results are reference information for the first-line investigation of a source IP address. They are not a verdict on whether an address is safe or malicious; "LOW" or "not detected" does not mean safe.',
-      'Results are based on third-party data sources (RDAP, DNS, Shodan InternetDB, Spamhaus DROP, IPsum, the Tor Project, etc.). Their accuracy, completeness and timeliness are not guaranteed; registration data and declared locations may be wrong.',
+      'Results are based on third-party data sources (RDAP, DNS, Shodan InternetDB, Spamhaus DROP / ASN-DROP, IPsum, the Tor Project, etc.). Their accuracy, completeness and timeliness are not guaranteed; registration data and declared locations may be wrong.',
       'The AI evaluation is automatically generated and may contain errors.',
       'Do not block, report or take other action based solely on these results. Verify the evidence, such as access logs, and act at your own responsibility. The provider accepts no liability for any damage arising from the use of this service.',
       'To perform the checks, the entered IP address is sent to external data sources (RDAP, DNS resolver, DNSBL operators, Shodan, etc.). Queries and results are recorded to show inquiry statistics.',
-      'Each data source remains the property of its provider. Spamhaus DROP: © The Spamhaus Project SLU.',
+      'Each data source remains the property of its provider. Spamhaus DROP / ASN-DROP: © The Spamhaus Project SLU.',
     ],
   },
   lang: '日本語',
@@ -324,6 +327,13 @@ export function indicatorEvidence(ind: Indicator, t: Dict): string {
       const credit = p.copyright ? fmt(e.dropCredit, { copyright: join(p.copyright), date: join(p.listUpdated) }) : '';
       if (ind.state === 'hit') return `${fmt(e.dropListed, { cidr: join(p.cidr), sblid: join(p.sblid) || '-' })} - ${credit}`;
       if (ind.state === 'unknown') return e.failed;
+      return [e.notListed, credit].filter(Boolean).join(' - ');
+    }
+    case 'asn_drop': {
+      const credit = p.copyright ? fmt(e.dropCredit, { copyright: join(p.copyright), date: join(p.listUpdated) }) : '';
+      if (ind.state === 'hit') return `${fmt(e.asnDropListed, { asns: join(p.asns) })} - ${credit}`;
+      if (ind.state === 'unknown') return e.failed;
+      if (ind.state === 'na') return e.noAsn;
       return [e.notListed, credit].filter(Boolean).join(' - ');
     }
     case 'ipsum':

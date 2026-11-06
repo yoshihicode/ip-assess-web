@@ -129,6 +129,21 @@ describe('assess', () => {
     expect(a).toMatchObject({ confidence: 'FULL', threat: { level: 'NONE_FOUND' } });
   });
 
+  it('Spamhaus ASN-DROP 掲載は脅威シグナル', () => {
+    const base = results();
+    const a = assess(ip, results({ asndrop: { ...base.asndrop, status: 'listed', matches: [{ asn: 64500, asname: 'BAD-AS', cc: 'US', domain: null }] } }));
+    expect(a.threat.signals).toEqual(['Spamhaus ASN-DROP AS64500']);
+    expect(a.priority).toBe('HIGH');
+    expect(ind(a, 'asn_drop').params.asns).toEqual(['AS64500 (BAD-AS)']);
+  });
+
+  it('ASN-DROP: 経路なしは対象外、照合できなければ UNKNOWN・PARTIAL', () => {
+    expect(ind(assess(ip, results({ asndrop: { ...results().asndrop, status: 'no_asn' } })), 'asn_drop').state).toBe('na');
+    const a = assess(ip, results({ asndrop: { ...results().asndrop, status: 'failed' } }));
+    expect(a.threat.level).toBe('UNKNOWN');
+    expect(a.unavailable).toEqual(['Spamhaus ASN-DROP']);
+  });
+
   it('Tor 出口ノード', () => {
     const a = assess(ip, results({ tor: { ...results().tor, status: 'listed' } }));
     expect(a).toMatchObject({ priority: 'HIGH', infraClass: 'tor' });

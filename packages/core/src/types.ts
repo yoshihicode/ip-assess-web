@@ -3,7 +3,7 @@
 
 import type { IpVersion } from './ip';
 
-export const CHECK_IDS = ['rdap', 'dns', 'asn', 'dnsbl', 'drop', 'tor', 'ipsum', 'internetdb', 'geofeed'] as const;
+export const CHECK_IDS = ['rdap', 'dns', 'asn', 'dnsbl', 'drop', 'asndrop', 'tor', 'ipsum', 'internetdb', 'geofeed'] as const;
 export type CheckId = (typeof CHECK_IDS)[number];
 
 export interface CheckMeta {
@@ -115,6 +115,26 @@ export interface DropResult extends CheckMeta {
   terms: string | null;
 }
 
+// Spamhaus ASN-DROP（犯罪者が運営する ASN。利用条件は DROP と同じ）
+export interface AsnDropEntry {
+  asn: number;
+  asname: string | null;
+  cc: string | null;
+  domain: string | null;
+}
+
+export interface AsnDropResult extends CheckMeta {
+  /** no_asn: 経路が広告されておらず照合する ASN がない */
+  status: 'listed' | 'not_listed' | 'no_asn' | 'failed';
+  /** 照合した ASN（オリジン AS と、同じアドレスを広告している別の AS） */
+  checkedAsns: number[];
+  /** 掲載されていた ASN */
+  matches: AsnDropEntry[];
+  listUpdated: string | null;
+  copyright: string | null;
+  terms: string | null;
+}
+
 export interface TorResult extends CheckMeta {
   status: 'listed' | 'not_listed' | 'failed';
 }
@@ -150,6 +170,7 @@ export interface CheckResults {
   asn: AsnResult;
   dnsbl: DnsblResult;
   drop: DropResult;
+  asndrop: AsnDropResult;
   tor: TorResult;
   ipsum: IpsumResult;
   internetdb: InternetDbResult;
@@ -166,7 +187,7 @@ export type InfraIndicatorId =
   | 'pobox' | 'vpn' | 'virtual_location' | 'pa' | 'no_ptr';
 
 export type ThreatIndicatorId =
-  | 'dnsbl' | 'drop' | 'ipsum' | 'compromised' | 'proxy' | 'tor' | 'spoofed_crawler';
+  | 'dnsbl' | 'drop' | 'asn_drop' | 'ipsum' | 'compromised' | 'proxy' | 'tor' | 'spoofed_crawler';
 
 export interface Indicator {
   axis: 'infra' | 'threat';

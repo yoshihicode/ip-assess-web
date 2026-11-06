@@ -49,13 +49,13 @@ flowchart LR
 | api Worker（`apps/api`） | チェックの実行、判定、D1 への保存、AI 評価の受付。`workers_dev: false` で公開 URL を持たない |
 | `packages/core` | IP の解析、各データソースの応答の解析、判定ロジック。**画面と API の両方で使う**（画面では入力検証に使用） |
 | D1 | 問い合わせ 1 件ごとの判定結果と AI 評価。問い合わせ状況の集計元 |
-| Workers Cache / メモリ | 各チェックの結果と、大きな一覧（Tor・IPsum・DROP）のキャッシュ |
+| Workers Cache / メモリ | 各チェックの結果と、大きな一覧（Tor・IPsum・DROP・ASN-DROP）のキャッシュ |
 | Queue + Workers AI | AI 評価を非同期で実行する |
 | Cron | 前日に上限を超えて保留した AI 評価を投入する |
 
 ### リクエストの流れ
 
-画面は 9 種類のチェックを並列に呼び、終わったものから表示する。すべて終わったら判定と保存を依頼する。
+画面は 10 種類のチェックを並列に呼び、終わったものから表示する。すべて終わったら判定と保存を依頼する。
 1 回の呼び出しに処理を集中させないのは、無料枠の CPU 時間が呼び出し 1 回あたり 10ms のため。
 
 ```mermaid
@@ -112,6 +112,7 @@ sequenceDiagram
 | `asn` | Team Cymru IP to ASN Mapping | DoH（TXT） | 6 時間 |
 | `dnsbl` | DroneBL・SpamCop・PSBL（Spamhaus ZEN は DQS キーがある場合のみ） | DoH | 30 分（リストの健全性確認は 1 時間） |
 | `drop` | Spamhaus DROP | HTTPS（JSON） | 1 時間 |
+| `asndrop` | Spamhaus ASN-DROP（`asn` の結果と照合） | HTTPS（JSON） | 1 時間 |
 | `tor` | Tor Project の出口ノード一覧 | HTTPS | 30 分 |
 | `ipsum` | IPsum（IPv4 のみ） | HTTPS（約 2MB） | 結果 1 時間 / 一覧 12 時間 |
 | `internetdb` | Shodan InternetDB | HTTPS | 6 時間 |
@@ -212,15 +213,15 @@ D1（SQLite 互換）のテーブルは 1 つ。**問い合わせ 1 件 = 1 行*
 - Ping が使えないため、遅延と「仮想ロケーション」は判定しない（`na`）
 - DNSBL は複数ある。DroneBL は脅威シグナル、SpamCop と PSBL は迷惑メール専用のため参考情報。
   各リストに RFC 5782 のテスト用アドレスを問い合わせ、正しく応答しないリストの「未掲載」は信用しない
-- Spamhaus は **DROP**（HTTP で一覧を取得、IPv4/IPv6）を脅威シグナルとして使う。
+- Spamhaus は **DROP**（犯罪者が管理するネットワーク。IPv4/IPv6）と **ASN-DROP**（犯罪者が運営する ASN。オリジン AS と、同じアドレスを広告している別の AS を照合）を、HTTP で一覧を取得して脅威シグナルとして使う。
   ZEN は公開リゾルバ経由では拒否されるため、DQS キー（`SPAMHAUS_DQS_KEY`）がある場合のみ使い、なければ「対象外」と表示する
 - IPsum は IPv4 のみ（IPv6 は「対象外」と表示）
 
-### Spamhaus DROP の利用条件
+### Spamhaus DROP / ASN-DROP の利用条件
 
 無料で、事業の規模・種類を問わず利用できる。製品で使う場合は Spamhaus Project の表記が必要で、
 日付と © 表記をデータとともに残すこと（https://www.spamhaus.org/drop/terms/）。
-画面では DROP の行とデータソース欄に © 表記とリストの更新日時を表示している（消さないこと）。
+画面では DROP・ASN-DROP の行とデータソース欄に © 表記とリストの更新日時を表示している（消さないこと）。
 
 ## 開発
 
@@ -253,7 +254,7 @@ packages/core/
   src/cymru.ts       Team Cymru の TXT の解析
   src/geofeed.ts     Geofeed の照合
   src/dnsbl.ts       DNSBL の定義と応答コードの意味
-  src/drop.ts        Spamhaus DROP の解析と照合
+  src/drop.ts        Spamhaus DROP / ASN-DROP の解析と照合
   src/assess.ts      判定ロジック
   src/types.ts       チェック結果・判定結果の型
   test/              vitest
@@ -292,11 +293,11 @@ npx wrangler secret put SPAMHAUS_DQS_KEY -c apps/api/wrangler.jsonc
 画面の下部にも同じ内容を日本語・英語で表示している（`apps/web/src/i18n.ts` の `disclaimer`）。変更する場合は両方を合わせること。
 
 - 本サービスの結果は、アクセス元 IP アドレスの一次調査のための参考情報です。安全・危険を判定するものではなく、「LOW」や「未検出」は安全であることを意味しません。
-- 結果は第三者のデータソース（RDAP、DNS、Shodan InternetDB、Spamhaus DROP、IPsum、Tor Project など）に基づきます。これらの情報の正確性・完全性・最新性は保証されず、登録情報や申告所在地は誤っている場合があります。
+- 結果は第三者のデータソース（RDAP、DNS、Shodan InternetDB、Spamhaus DROP / ASN-DROP、IPsum、Tor Project など）に基づきます。これらの情報の正確性・完全性・最新性は保証されず、登録情報や申告所在地は誤っている場合があります。
 - AI による評価は自動生成された参考情報であり、誤りを含む可能性があります。
 - 遮断・通報などの対応は、本サービスの結果だけで判断せず、アクセスログなどの根拠を確認したうえで、利用者の責任で行ってください。本サービスの利用によって生じた損害について、提供者は責任を負いません。
 - 調査のため、入力した IP アドレスは外部のデータソース（RDAP・DNS リゾルバ・DNSBL の運営者・Shodan など）に送信されます。また、問い合わせ内容と結果は問い合わせ状況の集計のために記録されます。
-- 各データソースの権利はそれぞれの提供者に帰属します。Spamhaus DROP: © The Spamhaus Project SLU。
+- 各データソースの権利はそれぞれの提供者に帰属します。Spamhaus DROP / ASN-DROP: © The Spamhaus Project SLU。
 
 ## 既知の制約・要確認
 
