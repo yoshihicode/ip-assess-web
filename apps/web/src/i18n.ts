@@ -104,7 +104,7 @@ const ja = {
     consumer_isp: '国内一般回線', sase: '企業向け SASE', verified_crawler: '検証済みクローラー',
     datacenter: 'データセンター・クラウド', sublease: 'IP 転貸（ドメイン不一致）', pobox: '私書箱・バーチャルオフィス',
     vpn: '匿名化 VPN', virtual_location: '仮想ロケーション', pa: 'PA 割り当て', no_ptr: '使える逆引きなし',
-    dnsbl: 'DNSBL', drop: 'Spamhaus DROP（犯罪者が管理するネットワーク）', asn_drop: 'Spamhaus ASN-DROP（犯罪者が運営する ASN）', ipsum: 'IPsum 集約ブラックリスト', compromised: '乗っ取られた機器（Shodan）',
+    dnsbl: 'DNSBL', drop: 'Spamhaus DROP（犯罪者が管理するネットワーク）', asn_drop: 'Spamhaus ASN-DROP（犯罪者が運営する ASN）', ipsum: 'IPsum 集約ブラックリスト', compromised: '侵害・マルウェアの兆候（Shodan）',
     proxy: '公開プロキシ（Shodan）', tor: 'Tor 出口ノード', spoofed_crawler: 'クローラーを装った逆引き',
   } as Record<string, string>,
   evidence: {
@@ -233,7 +233,7 @@ const en: Dict = {
     consumer_isp: 'Domestic consumer ISP', sase: 'Enterprise SASE', verified_crawler: 'Verified search engine crawler',
     datacenter: 'Datacenter / hosting / cloud', sublease: 'IP sub-leasing (domain mismatch)', pobox: 'PO box / virtual office',
     vpn: 'Anonymizing VPN service', virtual_location: 'Virtual location', pa: 'PA allocation', no_ptr: 'No usable reverse DNS',
-    dnsbl: 'DNSBL', drop: 'Spamhaus DROP (criminal-controlled networks)', asn_drop: 'Spamhaus ASN-DROP (criminal-operated ASNs)', ipsum: 'IPsum aggregated blocklists', compromised: 'Compromised host (Shodan)',
+    dnsbl: 'DNSBL', drop: 'Spamhaus DROP (criminal-controlled networks)', asn_drop: 'Spamhaus ASN-DROP (criminal-operated ASNs)', ipsum: 'IPsum aggregated blocklists', compromised: 'Compromise / malware indicators (Shodan)',
     proxy: 'Exposed proxy service (Shodan)', tor: 'Tor exit node', spoofed_crawler: 'Spoofed crawler PTR',
   },
   evidence: {
