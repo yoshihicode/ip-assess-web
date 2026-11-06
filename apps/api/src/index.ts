@@ -114,6 +114,8 @@ app.post('/assessments', async (c) => {
 
   // AI 評価: 24 時間以内に同じ IP・同じ結論の評価があれば再利用し、なければ日次上限まで投入する
   let aiStatus: AiStatus;
+  // 画面に返す AI 評価（再利用した場合は結果も含める。状態だけだと画面が「失敗」と表示するため）
+  let aiResponse: { status: AiStatus; model?: string | null; result?: unknown; completedAt?: string | null };
   if (!c.env.AI) {
     // Workers AI が使えない環境（ローカル実行）では AI 評価を行わない
     await insertAssessment(db, id, stored, 'none');
@@ -126,6 +128,7 @@ app.post('/assessments', async (c) => {
     await insertAssessment(db, id, stored, aiStatus, {
       model: recent.ai_model, result: recent.ai_result, requestedAt: null, completedAt: recent.ai_completed_at,
     });
+    aiResponse = { status: aiStatus, model: recent.ai_model, result: JSON.parse(recent.ai_result), completedAt: recent.ai_completed_at };
   } else {
     const limit = Number(c.env.AI_DAILY_LIMIT) || 20;
     const used = await countAiToday(db, now);
@@ -141,10 +144,11 @@ app.post('/assessments', async (c) => {
         await setAiStatus(db, id, 'deferred');
       }
     }
+    aiResponse = { status: aiStatus };
   }
 
   const history = await getHistory(db, assessment.ip, now);
-  return c.json({ id, assessment, history, ai: { status: aiStatus } });
+  return c.json({ id, assessment, history, ai: aiResponse });
 });
 
 // 保存済みの結果（共有リンク・再表示用）

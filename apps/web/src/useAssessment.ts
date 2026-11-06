@@ -96,7 +96,8 @@ export function useAssessment() {
       const result = await createAssessment(ip);
       if (run !== runId.current) return;
       setState((s) => ({ ...s, result, assessing: false }));
-      if (result.ai.status === 'queued') void pollAi(result.id, run);
+      // 評価中、または「完了」なのに結果がない場合は結果を取り直す
+      if (result.ai.status === 'queued' || (result.ai.status === 'done' && !result.ai.result)) void pollAi(result.id, run);
     } catch (e) {
       if (run !== runId.current) return;
       setState((s) => ({ ...s, assessing: false, error: errorCode(e) }));
