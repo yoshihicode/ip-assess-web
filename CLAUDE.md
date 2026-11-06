@@ -38,6 +38,7 @@ flowchart LR
     Cache["Workers Cache"] -.-> Api
 ```
 D1 で問い合わせをキャッシュ
+TurnstileでBot対策
                  
 ## UI
 問合せをしてから各種調査をするために外部APIを叩く必要があります。 

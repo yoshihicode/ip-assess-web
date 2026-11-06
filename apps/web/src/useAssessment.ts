@@ -4,6 +4,7 @@ import {
   ApiError, createAssessment, fetchAi, fetchAssessment, fetchCheck,
   type AiState, type AssessmentResponse,
 } from './api';
+import { ensureSession } from './session';
 
 export type CheckState = 'pending' | 'done' | 'failed';
 
@@ -61,6 +62,16 @@ export function useAssessment() {
     const ip = parsed.address;
     setState({ ...initial, ip, checkState: Object.fromEntries(CHECK_IDS.map((id) => [id, 'pending'])) });
 
+    // Bot 対策のセッションを先に用意する（11 件のリクエストが一斉に 401 にならないように）
+    try {
+      await ensureSession();
+    } catch (e) {
+      if (run !== runId.current) return;
+      setState({ ...initial, error: errorCode(e) });
+      return;
+    }
+    if (run !== runId.current) return;
+
     let fatal: string | null = null;
     await Promise.all(CHECK_IDS.map(async (id) => {
       try {
@@ -96,6 +107,7 @@ export function useAssessment() {
     const run = ++runId.current;
     setState({ ...initial, assessing: true });
     try {
+      await ensureSession();
       const r = await fetchAssessment(id);
       if (run !== runId.current) return;
       setState({

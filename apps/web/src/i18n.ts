@@ -14,6 +14,9 @@ const ja = {
     rate_limited: '短時間に問い合わせが集中しています。少し待ってから再度お試しください。',
     network: '通信に失敗しました。',
     not_found: '指定された結果が見つかりません。',
+    bot_check_failed: 'Bot 対策の確認に失敗しました。ページを再読み込みしてもう一度お試しください。',
+    session_required: 'セッションの有効期限が切れました。もう一度お試しください。',
+    turnstile_misconfigured: 'サーバーの Bot 対策の設定が不完全です。管理者に連絡してください。',
     generic: 'エラーが発生しました。',
   },
   checks: {
@@ -158,6 +161,9 @@ const en: Dict = {
     rate_limited: 'Too many requests. Please wait a moment and try again.',
     network: 'Network error.',
     not_found: 'Result not found.',
+    bot_check_failed: 'Bot verification failed. Please reload the page and try again.',
+    session_required: 'Your session has expired. Please try again.',
+    turnstile_misconfigured: 'Bot protection is not fully configured on the server. Please contact the administrator.',
     generic: 'An error occurred.',
   },
   checks: {

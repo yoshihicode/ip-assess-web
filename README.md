@@ -32,6 +32,8 @@
 ```mermaid
 flowchart LR
     Browser["Browser"] --> Web["web Worker<br/>React SPA (Static Assets)"]
+    Browser -. "ウィジェット" .-> TS["Turnstile"]
+    Api -. "siteverify" .-> TS
     Web -- "Service Binding<br/>/api/*, /auth/*" --> Api["api Worker<br/>Hono (公開 URL なし)"]
     Api --> D1[("D1<br/>assessments")]
     Api --> Cache["Workers Cache<br/>+ isolate メモリ"]
@@ -46,7 +48,8 @@ flowchart LR
 | 構成要素 | 役割 |
 | :--- | :--- |
 | web Worker（`apps/web`） | React SPA を静的アセットとして配信する。`/api/*` `/auth/*` だけを Service Binding で api Worker に渡す（`run_worker_first`） |
-| api Worker（`apps/api`） | チェックの実行、判定、D1 への保存、AI 評価の受付。`workers_dev: false` で公開 URL を持たない |
+| api Worker（`apps/api`） | チェックの実行、判定、D1 への保存、AI 評価の受付、セッションの発行と確認。`workers_dev: false` で公開 URL を持たない |
+| Turnstile | Bot 対策。画面のウィジェットが発行したトークンを api Worker が siteverify で検証し、セッション Cookie を発行する（`TURNSTILE_SITE_KEY` が空なら無効。詳細は [Bot 対策（Turnstile）](#bot-対策turnstile)） |
 | `packages/core` | IP の解析、各データソースの応答の解析、判定ロジック。**画面と API の両方で使う**（画面では入力検証に使用） |
 | D1 | 問い合わせ 1 件ごとの判定結果と AI 評価。問い合わせ状況の集計元 |
 | Workers Cache / メモリ | 各チェックの結果と、大きな一覧（Tor・IPsum・DROP・ASN-DROP）のキャッシュ |
@@ -55,18 +58,27 @@ flowchart LR
 
 ### リクエストの流れ
 
-画面は 10 種類のチェックを並列に呼び、終わったものから表示する。すべて終わったら判定と保存を依頼する。
+画面はまず Bot 対策のセッションを用意し（有効な間は再利用）、10 種類のチェックを並列に呼んで、終わったものから表示する。すべて終わったら判定と保存を依頼する。
 1 回の呼び出しに処理を集中させないのは、無料枠の CPU 時間が呼び出し 1 回あたり 10ms のため。
 
 ```mermaid
 sequenceDiagram
     participant B as Browser
+    participant T as Turnstile
     participant A as api Worker
     participant C as Cache
     participant X as 外部データソース
     participant D as D1
     participant Q as Queue
 
+    opt Turnstile が有効で、セッションがない・期限が近い
+        B->>T: トークンを取得（通常は操作不要）
+        T-->>B: トークン
+        B->>A: POST /api/session {token}
+        A->>T: siteverify
+        A-->>B: セッション Cookie（30 分）
+    end
+    Note over B,A: 以降のリクエストは Cookie で確認（なければ 401。画面は取り直して 1 回再試行）
     par チェックごとに並列
         B->>A: GET /api/checks/{id}?ip=
         A->>C: 参照
@@ -99,9 +111,24 @@ sequenceDiagram
 | GET | `/api/assessments/:id/ai` | AI 評価の状態と結果 |
 | GET | `/api/history?ip=` | 同じ IP の問い合わせ状況 |
 | GET | `/api/health` | 稼働確認 |
+| GET | `/api/config` | 画面の初期設定（Turnstile のサイトキー。無効なら `null`） |
+| POST | `/api/session` | `{ "token": "..." }`（Turnstile のトークン）を検証し、セッション Cookie を発行する |
 
-エラーは `{ "error": "<code>" }`（`invalid_ip` / `not_global` / `rate_limited` / `not_found` / `internal_error` など）。
+エラーは `{ "error": "<code>" }`（`invalid_ip` / `not_global` / `rate_limited` / `not_found` / `session_required` / `bot_check_failed` / `internal_error` など）。
 利用者の IP ごとに 1 分 120 回のレート制限がある（Rate Limiting バインディング）。
+
+### Bot 対策（Turnstile）
+
+`TURNSTILE_SITE_KEY` を設定すると有効になる（空なら無効）。実装は `apps/api/src/turnstile.ts` と `apps/web/src/session.ts`。
+
+1. 画面は Turnstile のウィジェットを配置する。普段は表示されず（`interaction-only`）、Bot の疑いがあるときだけ確認が出る
+2. 調査を始める前に、トークンを `POST /api/session` に送る。api Worker が siteverify で検証し、
+   署名付きのセッション Cookie（`ia_session`、HMAC-SHA256、30 分、`HttpOnly; Secure; SameSite=Strict; Path=/api`）を発行する
+3. `/api/checks/*` `/api/assessments*` `/api/history` はセッションが必要（なければ 401 `session_required`）。
+   画面は 401 を受けるとセッションを取り直して 1 回だけ再試行する
+
+Turnstile のトークンは 1 回しか検証できないため、1 回の調査（11 リクエスト）ごとではなくセッション単位で確認している。
+サイトキーがあるのにシークレットか署名鍵が未設定の場合は、保護なしで動かさず 500 `turnstile_misconfigured` を返す。
 
 ### チェック（外部データソース）
 
@@ -235,6 +262,7 @@ npm run typecheck
 
 - どちらも画面のビルドとローカル D1 のマイグレーションを自動で行い、web と api を同時に起動する
 - ローカルの D1 は `.wrangler/state` に SQLite として保存される（消すと問い合わせ履歴も消える）。本番の D1 とは別
+- `dev:local` では Turnstile が Cloudflare 公式のテスト用キー（常に成功する）で有効になる。`npm run dev` で試す場合は `apps/api/.dev.vars.example` を参照
 - `dev:local` は api の `env.local`（AI バインディングなし）を使う。起動時の `"ai" exists at the top level, but not on "env.local"` などの警告は想定どおり。
   バインディングと `vars` は環境ごとに継承されないため、`apps/api/wrangler.jsonc` を変更したら `env.local` も合わせること
 
@@ -284,6 +312,20 @@ npm run db:migrate:remote
 npm run deploy                            # api → web の順にデプロイ（web は api への Service Binding を持つため）
 # 任意: Spamhaus DQS を使う場合
 npx wrangler secret put SPAMHAUS_DQS_KEY -c apps/api/wrangler.jsonc
+```
+
+Bot 対策（Turnstile）を有効にする場合:
+
+1. Cloudflare ダッシュボードの Turnstile でウィジェットを作成する（ホスト名にデモ・本番のドメインを登録、モードは Managed）
+2. シークレットキーと、セッションの署名鍵（十分に長いランダムな文字列）を先に登録する
+3. サイトキーを `apps/api/wrangler.jsonc` の `vars.TURNSTILE_SITE_KEY` に設定してデプロイする
+   （順序を逆にすると、シークレットを登録するまでの間 API が 500 `turnstile_misconfigured` を返す）
+
+```bash
+npx wrangler secret put TURNSTILE_SECRET_KEY -c apps/api/wrangler.jsonc
+openssl rand -base64 32 | npx wrangler secret put SESSION_SECRET -c apps/api/wrangler.jsonc
+# wrangler.jsonc の TURNSTILE_SITE_KEY を設定してから
+npm run deploy
 ```
 
 アクセス制御は未実装。社内利用なら Cloudflare Access（Zero Trust）で web Worker を保護することを想定。

@@ -1,0 +1,5 @@
+# `npm run dev`（AI あり）で Turnstile を試す場合は、このファイルを .dev.vars にコピーし、
+# wrangler.jsonc の TURNSTILE_SITE_KEY にテスト用サイトキー 1x00000000000000000000AA を入れる
+# 値は Cloudflare 公式のテスト用キー（常に成功する）。本番では使わない
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+SESSION_SECRET=local-development-only

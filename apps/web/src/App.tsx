@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { detectLang, dictionaries, I18nContext, type Lang } from './i18n';
 import { useAssessment } from './useAssessment';
+import { initBotCheck } from './session';
 import {
   AiSection, ContactsSection, ExposureSection, HistorySection, Indicators, LocationSection,
   NetworkSection, Progress, SourcesSection, Summary,
@@ -23,6 +24,14 @@ export function App() {
   const i18n = useMemo(() => ({ lang, t, setLang }), [lang, t, setLang]);
 
   const { state, run, load } = useAssessment();
+
+  // Turnstile のウィジェット（普段は表示されず、確認が必要なときだけ表示される）
+  const botCheckRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (botCheckRef.current) initBotCheck(botCheckRef.current, lang);
+    // 言語はウィジェットの初回配置時のみ反映する
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [input, setInput] = useState(() => readUrl().ip ?? '');
 
   const go = useCallback((params: Record<string, string>) => {
@@ -82,6 +91,7 @@ export function App() {
           />
           <button type="submit">{t.submit}</button>
         </form>
+        <div ref={botCheckRef} className="bot-check" />
 
         {state.error && <p className="error" role="alert">{(t.errors as Record<string, string>)[state.error] ?? t.errors.generic}</p>}
 

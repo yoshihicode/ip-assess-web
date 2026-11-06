@@ -14,6 +14,7 @@ import { checkAsnDrop, checkDrop } from './checks/drop';
 import { checkInternetDb } from './checks/internetdb';
 import { checkGeofeed } from './checks/geofeed';
 import { evaluateWithAi } from './ai';
+import { createSession, requireSession, turnstileEnabled } from './turnstile';
 import {
   countAiToday, findRecentAi, getAssessment, getHistory, insertAssessment, listDeferred, setAiStatus,
   type AiStatus, type StoredResult,
@@ -76,6 +77,18 @@ app.use('*', async (c, next) => {
 });
 
 app.get('/health', (c) => c.json({ ok: true }));
+
+// 画面の初期設定（Turnstile のサイトキーは公開値）
+app.get('/config', (c) => c.json({ turnstileSiteKey: turnstileEnabled(c.env) ? c.env.TURNSTILE_SITE_KEY : null }));
+
+// Turnstile のトークンを検証してセッションを発行する
+app.post('/session', (c) => createSession(c));
+
+// 以降の API はセッションが必要（Turnstile が有効な場合）
+app.use('/checks/*', requireSession);
+app.use('/assessments', requireSession);
+app.use('/assessments/*', requireSession);
+app.use('/history', requireSession);
 
 // 個々のチェック（画面はこれを並列に呼び、終わったものから表示する）
 app.get('/checks/:id', async (c) => {

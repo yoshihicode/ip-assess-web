@@ -59,13 +59,17 @@
     "AI_DAILY_LIMIT": "20",
     "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "AI_LANGUAGE": "English",
-    "DOH_ENDPOINT": "https://cloudflare-dns.com/dns-query"
+    "DOH_ENDPOINT": "https://cloudflare-dns.com/dns-query",
+    // Turnstile（Bot 対策）のサイトキー。空なら無効
+    //   有効にする場合はダッシュボードでウィジェットを作成してサイトキーを設定し、次の 2 つを secret に登録する
+    //   `npx wrangler secret put TURNSTILE_SECRET_KEY` / `npx wrangler secret put SESSION_SECRET`
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAF16xWsserPjf8j1TPxM2hRMJuY"
   },
   // Spamhaus DQS を使う場合: `npx wrangler secret put SPAMHAUS_DQS_KEY`
   "env": {
     // ログインなしのローカル実行用（`npm run dev:local`）
     //   Workers AI はローカルで動かせず、バインディングがあるとリモート接続を要求されるため外す。
-    //   AI 評価はキューで再試行したあと failed になる
+    //   AI がない場合、AI 評価は行わない（ai_status: none）
     //   バインディングは環境ごとに継承されないため、AI 以外は上と同じ内容を書く
     "local": {
       "name": "ip-assess-api",
@@ -106,7 +110,11 @@
         "AI_DAILY_LIMIT": "20",
         "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
         "AI_LANGUAGE": "English",
-        "DOH_ENDPOINT": "https://cloudflare-dns.com/dns-query"
+        "DOH_ENDPOINT": "https://cloudflare-dns.com/dns-query",
+        // Cloudflare 公式のテスト用キー（常に成功する）。本番では使わない
+        "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
+        "SESSION_SECRET": "local-development-only"
       }
     }
   }

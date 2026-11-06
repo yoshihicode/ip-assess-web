@@ -149,3 +149,4 @@ ul.plain { margin: 0; padding-left: 18px; }
 }
 .footer h2 { font-size: 12px; letter-spacing: 0.08em; margin: 0 0 6px; }
 .footer ul { margin: 0; padding-left: 18px; }
+.bot-check:not(:empty) { margin-top: 12px; }

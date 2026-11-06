@@ -42,14 +42,24 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+let refreshSession: (() => Promise<void>) | null = null;
+/** セッション切れ（401）のときに呼ぶ処理を登録する（session.ts から） */
+export function setSessionRefresher(fn: () => Promise<void>) {
+  refreshSession = fn;
+}
+
+async function request<T>(path: string, init?: RequestInit, retry = true): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, init);
+    res = await fetch(path, { credentials: 'same-origin', ...init });
   } catch {
     throw new ApiError('network', 0);
   }
   const body = (await res.json().catch(() => ({}))) as { error?: string };
+  if (res.status === 401 && body.error === 'session_required' && retry && refreshSession) {
+    await refreshSession();
+    return request<T>(path, init, false);
+  }
   if (!res.ok) throw new ApiError(body.error ?? 'generic', res.status);
   return body as T;
 }
@@ -67,3 +77,12 @@ export const createAssessment = (ip: string) =>
 export const fetchAssessment = (id: string) => request<StoredAssessmentResponse>(`/api/assessments/${encodeURIComponent(id)}`);
 
 export const fetchAi = (id: string) => request<AiState>(`/api/assessments/${encodeURIComponent(id)}/ai`);
+
+export const fetchConfig = () => request<{ turnstileSiteKey: string | null }>('/api/config');
+
+export const createSession = (token: string) =>
+  request<{ enabled: boolean; expiresAt?: number }>('/api/session', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
