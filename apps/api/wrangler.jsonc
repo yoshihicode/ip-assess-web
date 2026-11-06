@@ -63,7 +63,7 @@
     // Turnstile（Bot 対策）のサイトキー。空なら無効
     //   有効にする場合はダッシュボードでウィジェットを作成してサイトキーを設定し、次の 2 つを secret に登録する
     //   `npx wrangler secret put TURNSTILE_SECRET_KEY` / `npx wrangler secret put SESSION_SECRET`
-    "TURNSTILE_SITE_KEY": "0x4AAAAAAF16xWsserPjf8j1TPxM2hRMJuY"
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAF16xavjuRsPnZLE"
   },
   // Spamhaus DQS を使う場合: `npx wrangler secret put SPAMHAUS_DQS_KEY`
   "env": {
