@@ -5,7 +5,7 @@ export type Lang = 'ja' | 'en';
 
 const ja = {
   title: 'ip-assess',
-  tagline: 'アクセス元 IP アドレスの一次調査',
+  tagline: 'アクセス元 IP アドレスの一次調査用ツール',
   placeholder: 'IPv4 / IPv6 アドレス（例: 203.0.113.10）',
   submit: '調査する',
   errors: {
@@ -147,7 +147,7 @@ type Dict = typeof ja;
 
 const en: Dict = {
   title: 'ip-assess',
-  tagline: 'First-line investigation of a source IP address',
+  tagline: 'A first-line investigation tool for source IP addresses',
   placeholder: 'IPv4 / IPv6 address (e.g. 203.0.113.10)',
   submit: 'Assess',
   errors: {
